@@ -165,6 +165,8 @@
     z-index: 100;
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
+    gap: 8px;
+    flex-wrap: wrap;
   }
   #toolbar .tabs {
     display: flex;
@@ -189,7 +191,11 @@
   #toolbar .tabs button:not(.active):hover {
     border-color: var(--border);
   }
-  #btn-download {
+  #toolbar .actions {
+    display: flex;
+    gap: 4px;
+  }
+  #toolbar .actions button {
     padding: 6px 14px;
     border-radius: 6px;
     border: 1px solid var(--border);
@@ -201,7 +207,7 @@
     transition: all 0.15s;
     white-space: nowrap;
   }
-  #btn-download:hover {
+  #toolbar .actions button:hover {
     background: var(--link);
     color: #fff;
     border-color: var(--link);
@@ -251,8 +257,12 @@
     <button id="btn-preview" class="active">👁 预览</button>
     <button id="btn-source">✏️ 编辑</button>
   </div>
-  <button id="btn-download">⬇ 下载 .md</button>
+  <div class="actions">
+    <button id="btn-upload">📂 打开</button>
+    <button id="btn-download">⬇ 下载</button>
+  </div>
 </div>
+<input type="file" id="file-input" accept=".md,.txt,.markdown,text/markdown" style="display:none">
 
 <div id="loading">⏳ 正在渲染 Markdown...</div>
 <div id="content"></div>
@@ -276,7 +286,8 @@ const MARKDOWN = `
 1. 实时编辑 Markdown 源码
 2. 一键切换预览渲染效果
 3. 下载为 .md 文件
-4. 通过 \`?file=xxx.md\` 参数加载外部 Markdown 文件
+4. 📂 **打开手机本地 .md 文件**
+5. 通过 \`?file=xxx.md\` 参数加载服务器文件
 
 ---
 
@@ -286,11 +297,9 @@ const MARKDOWN = `
 |------|------|
 | 👁 预览 | 查看渲染后的效果 |
 | ✏️ 编辑 | 直接修改 Markdown 源码，切回预览即可生效 |
+| 📂 打开 | 从手机/电脑选择本地 .md 文件 |
 | ⬇ 下载 | 将当前内容保存为 .md 文件 |
 | 📂 加载外部文件 | URL 加 \`?file=文档.md\` 参数 |
-
-> 💡 **加载外部 .md 文件**：
-> \`http://你的地址/index.html?file=docs/文档.md\`
 
 ---
 
@@ -305,43 +314,14 @@ const MARKDOWN = `
 | ⬆️ 回到顶部 | 滚动时自动出现的返回顶部按钮 |
 | 🎨 代码高亮区域 | 代码块有独立背景和等宽字体 |
 | ✏️ 实时编辑 | 源码区可直接修改，切回预览即时生效 |
-| 📂 外部加载 | 支持 URL 参数加载同目录下的 .md 文件 |
+| 📂 本地文件 | 点击"打开"按钮，选择手机上的 .md 文件 |
+| 📂 远程文件 | 支持 URL 参数加载服务器上的 .md 文件 |
 
 ---
 
-## 代码示例
+## 试试看
 
-\`\`\`python
-def hello(name: str) -> str:
-    """向某人打招呼"""
-    return f"Hello, {name}!"
-
-if __name__ == "__main__":
-    print(hello("World"))
-\`\`\`
-
-\`\`\`javascript
-// 斐波那契数列
-function fib(n) {
-  if (n <= 1) return n;
-  return fib(n - 1) + fib(n - 2);
-}
-
-console.log(fib(10)); // 55
-\`\`\`
-
-\`\`\`bash
-# 列出当前目录下最大的 5 个文件
-du -sh * | sort -rh | head -5
-\`\`\`
-
----
-
-## 结语
-
-切换「编辑」模式试试——修改内容后切回「预览」看效果！
-
-> 🎉 现在你可以在手机上随时编辑和预览 Markdown 了
+点击工具栏的 **📂 打开** 按钮，选择你手机上的一个 .md 文件，即可在浏览器中预览渲染效果！
 `;
 
 // ========== 渲染逻辑 ==========
@@ -353,7 +333,9 @@ du -sh * | sort -rh | head -5
   const backToTop = document.getElementById('back-to-top');
   const btnPreview = document.getElementById('btn-preview');
   const btnSource = document.getElementById('btn-source');
+  const btnUpload = document.getElementById('btn-upload');
   const btnDownload = document.getElementById('btn-download');
+  const fileInput = document.getElementById('file-input');
 
   // 源码内容变化时更新状态栏
   sourceView.addEventListener('input', updateSourceStatus);
@@ -367,18 +349,15 @@ du -sh * | sort -rh | head -5
   function renderPreview(mdText) {
     try {
       const html = marked.parse(mdText);
-
       const temp = document.createElement('div');
       temp.innerHTML = html;
       const headings = temp.querySelectorAll('h1, h2, h3');
       const tocItems = [];
-
       headings.forEach((h, i) => {
         const id = 'heading-' + i;
         h.id = id;
         tocItems.push({ level: h.tagName, text: h.textContent, id: id });
       });
-
       let tocHTML = '';
       if (tocItems.length > 0) {
         tocHTML = '<details id="toc" open><summary>📑 目录</summary><ul>';
@@ -388,7 +367,6 @@ du -sh * | sort -rh | head -5
         });
         tocHTML += '</ul></details>';
       }
-
       content.innerHTML = tocHTML + temp.innerHTML;
       loading.style.display = 'none';
     } catch (e) {
@@ -413,7 +391,6 @@ du -sh * | sort -rh | head -5
         const resp = await fetch(fetchUrl);
         if (!resp.ok) throw new Error('HTTP ' + resp.status);
         mdText = await resp.text();
-        // 更新标题
         const name = fileParam ? fileParam.replace(/^.*[\\/]/, '') : '';
         if (name) document.title = name + ' — Markdown 预览';
       } catch (err) {
@@ -433,6 +410,39 @@ du -sh * | sort -rh | head -5
 
   init();
 
+  // ===== 文件上传：从本地打开 .md 文件 =====
+  btnUpload.addEventListener('click', function() {
+    fileInput.click();
+  });
+
+  fileInput.addEventListener('change', function(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const text = e.target.result;
+      sourceView.value = text;
+      updateSourceStatus();
+      renderPreview(text);
+      document.title = file.name + ' — Markdown 预览';
+      // 自动切换到预览模式
+      btnPreview.classList.add('active');
+      btnSource.classList.remove('active');
+      sourceView.classList.remove('visible');
+      sourceStatus.classList.remove('visible');
+      content.classList.remove('hidden');
+      window.scrollTo({ top: 0 });
+    };
+    reader.onerror = function() {
+      alert('读取文件失败，请重试。');
+    };
+    reader.readAsText(file, 'UTF-8');
+
+    // 清除选择，允许重复打开同一个文件
+    fileInput.value = '';
+  });
+
   // 预览 / 编辑 切换
   btnPreview.addEventListener('click', function() {
     btnPreview.classList.add('active');
@@ -441,7 +451,6 @@ du -sh * | sort -rh | head -5
     sourceStatus.classList.remove('visible');
     content.classList.remove('hidden');
     backToTop.classList.remove('show');
-    // 用编辑区最新内容重新渲染
     renderPreview(sourceView.value);
     window.scrollTo({ top: 0 });
     if (window.location.hash) {
@@ -461,7 +470,7 @@ du -sh * | sort -rh | head -5
     sourceView.focus();
   });
 
-  // 下载 .md 文件（使用编辑区最新内容）
+  // 下载 .md 文件
   btnDownload.addEventListener('click', function() {
     var md = sourceView.value;
     var blob = new Blob([md], { type: 'text/markdown;charset=utf-8' });
