@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Markdown 预览</title>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<style>
+  :root {
+    --bg: #fff;
+    --text: #1a1a2e;
+    --code-bg: #f4f4f5;
+    --border: #e5e7eb;
+    --link: #2563eb;
+    --heading: #111827;
+    --blockquote-border: #3b82f6;
+    --blockquote-bg: #eff6ff;
+    --table-stripe: #f9fafb;
+    --table-border: #d1d5db;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f172a;
+      --text: #e2e8f0;
+      --code-bg: #1e293b;
+      --border: #334155;
+      --link: #60a5fa;
+      --heading: #f1f5f9;
+      --blockquote-border: #3b82f6;
+      --blockquote-bg: #1e293b;
+      --table-stripe: #1e293b;
+      --table-border: #475569;
+    }
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans SC", sans-serif;
+    line-height: 1.75;
+    padding: 16px;
+    max-width: 720px;
+    margin: 0 auto;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    color: var(--heading);
+    margin: 1.2em 0 0.5em;
+    line-height: 1.3;
+  }
+  h1 { font-size: 1.8rem; border-bottom: 2px solid var(--border); padding-bottom: 0.3em; }
+  h2 { font-size: 1.45rem; border-bottom: 1px solid var(--border); padding-bottom: 0.25em; }
+  h3 { font-size: 1.2rem; }
+  p { margin: 0.8em 0; }
+  a { color: var(--link); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code {
+    background: var(--code-bg);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", monospace;
+    font-size: 0.9em;
+  }
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    overflow-x: auto;
+    margin: 1em 0;
+    -webkit-overflow-scrolling: touch;
+  }
+  pre code {
+    background: none;
+    padding: 0;
+    font-size: 0.85em;
+    line-height: 1.6;
+  }
+  blockquote {
+    border-left: 4px solid var(--blockquote-border);
+    background: var(--blockquote-bg);
+    margin: 1em 0;
+    padding: 10px 16px;
+    border-radius: 0 6px 6px 0;
+    color: var(--heading);
+  }
+  blockquote p { margin: 0.3em 0; }
+  ul, ol { padding-left: 1.5em; margin: 0.6em 0; }
+  li { margin: 0.3em 0; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1em 0;
+    font-size: 0.95em;
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  th, td {
+    border: 1px solid var(--table-border);
+    padding: 8px 12px;
+    text-align: left;
+  }
+  th {
+    background: var(--code-bg);
+    font-weight: 600;
+  }
+  tr:nth-child(even) td { background: var(--table-stripe); }
+  img { max-width: 100%; border-radius: 6px; }
+  hr { border: none; border-top: 1px solid var(--border); margin: 2em 0; }
+
+  /* 目录导航 */
+  #toc {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-bottom: 1.5em;
+    font-size: 0.9em;
+  }
+  #toc summary { font-weight: 600; cursor: pointer; margin-bottom: 8px; }
+  #toc ul { list-style: none; padding-left: 0; }
+  #toc li { margin: 4px 0; }
+  #toc a { color: var(--link); }
+
+  /* 回到顶部按钮 */
+  #back-to-top {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--link);
+    color: #fff;
+    border: none;
+    font-size: 1.2rem;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.3s;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    z-index: 999;
+  }
+  #back-to-top.show { opacity: 1; }
+
+  /* 加载状态 */
+  #loading {
+    text-align: center;
+    padding: 40px 0;
+    color: #9ca3af;
+  }
+  #loading.error { color: #ef4444; }
+
+  /* 顶部工具栏 */
+  #toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 8px 12px;
+    margin-bottom: 1.2em;
+    position: sticky;
+    top: 8px;
+    z-index: 100;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+  #toolbar .tabs {
+    display: flex;
+    gap: 4px;
+  }
+  #toolbar .tabs button {
+    padding: 6px 14px;
+    border-radius: 6px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--text);
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-family: inherit;
+    transition: all 0.15s;
+  }
+  #toolbar .tabs button.active {
+    background: var(--link);
+    color: #fff;
+    border-color: var(--link);
+  }
+  #toolbar .tabs button:not(.active):hover {
+    border-color: var(--border);
+  }
+  #btn-download {
+    padding: 6px 14px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--link);
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-family: inherit;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  #btn-download:hover {
+    background: var(--link);
+    color: #fff;
+    border-color: var(--link);
+  }
+
+  /* 源码编辑区 */
+  #source-view {
+    display: none;
+    width: 100%;
+    min-height: 70vh;
+    background: var(--code-bg);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", monospace;
+    font-size: 0.85em;
+    line-height: 1.7;
+    white-space: pre-wrap;
+    word-break: break-word;
+    resize: vertical;
+    outline: none;
+    -webkit-appearance: none;
+  }
+  #source-view:focus {
+    border-color: var(--link);
+    box-shadow: 0 0 0 2px rgba(37,99,235,0.15);
+  }
+  #source-view.visible { display: block; }
+  #content.hidden { display: none; }
+
+  /* 源码模式下的状态栏 */
+  #source-status {
+    display: none;
+    text-align: right;
+    font-size: 0.78em;
+    color: #9ca3af;
+    margin-top: 4px;
+  }
+  #source-status.visible { display: block; }
+</style>
+</head>
+<body>
+
+<div id="toolbar">
+  <div class="tabs">
+    <button id="btn-preview" class="active">👁 预览</button>
+    <button id="btn-source">✏️ 编辑</button>
+  </div>
+  <button id="btn-download">⬇ 下载 .md</button>
+</div>
+
+<div id="loading">⏳ 正在渲染 Markdown...</div>
+<div id="content"></div>
+<textarea id="source-view" spellcheck="false"></textarea>
+<div id="source-status"></div>
+<button id="back-to-top" title="回到顶部">↑</button>
+
+<script>
+// ========== 默认 Markdown 内容（没有 ?file= 参数时使用）==========
+const MARKDOWN = `
+# 📝 Markdown 预览器
+
+> 一个自包含的 Markdown 渲染页面——支持 **亮色/暗色模式**，手机上也舒服。
+
+---
+
+## 这是什么？
+
+这是一个**单文件 HTML 页面**，支持：
+
+1. 实时编辑 Markdown 源码
+2. 一键切换预览渲染效果
+3. 下载为 .md 文件
+4. 通过 \`?file=xxx.md\` 参数加载外部 Markdown 文件
+
+---
+
+## 怎么用
+
+| 操作 | 方式 |
+|------|------|
+| 👁 预览 | 查看渲染后的效果 |
+| ✏️ 编辑 | 直接修改 Markdown 源码，切回预览即可生效 |
+| ⬇ 下载 | 将当前内容保存为 .md 文件 |
+| 📂 加载外部文件 | URL 加 \`?file=文档.md\` 参数 |
+
+> 💡 **加载外部 .md 文件**：
+> \`http://你的地址/markdown-viewer.html?file=文档.md\`
+
+---
+
+## 功能特性
+
+| 特性 | 说明 |
+|------|------|
+| ✨ 标准 Markdown | 标题、列表、链接、图片、表格等全部支持 |
+| 🌓 自动暗色模式 | 跟随系统设置自动切换亮/暗主题 |
+| 📱 移动端适配 | 响应式布局，手机上阅读体验良好 |
+| 🔗 自动目录 | 根据标题自动生成可跳转的目录 |
+| ⬆️ 回到顶部 | 滚动时自动出现的返回顶部按钮 |
+| 🎨 代码高亮区域 | 代码块有独立背景和等宽字体 |
+| ✏️ 实时编辑 | 源码区可直接修改，切回预览即时生效 |
+| 📂 外部加载 | 支持 URL 参数加载同目录下的 .md 文件 |
+
+---
+
+## 代码示例
+
+\`\`\`python
+def hello(name: str) -> str:
+    """向某人打招呼"""
+    return f"Hello, {name}!"
+
+if __name__ == "__main__":
+    print(hello("World"))
+\`\`\`
+
+\`\`\`javascript
+// 斐波那契数列
+function fib(n) {
+  if (n <= 1) return n;
+  return fib(n - 1) + fib(n - 2);
+}
+
+console.log(fib(10)); // 55
+\`\`\`
+
+\`\`\`bash
+# 列出当前目录下最大的 5 个文件
+du -sh * | sort -rh | head -5
+\`\`\`
+
+---
+
+## 结语
+
+切换「编辑」模式试试——修改内容后切回「预览」看效果！
+
+> 🎉 现在你可以在手机上随时编辑和预览 Markdown 了
+`;
+
+// ========== 渲染逻辑 ==========
+(function() {
+  const loading = document.getElementById('loading');
+  const content = document.getElementById('content');
+  const sourceView = document.getElementById('source-view');
+  const sourceStatus = document.getElementById('source-status');
+  const backToTop = document.getElementById('back-to-top');
+  const btnPreview = document.getElementById('btn-preview');
+  const btnSource = document.getElementById('btn-source');
+  const btnDownload = document.getElementById('btn-download');
+
+  // 源码内容变化时更新状态栏
+  sourceView.addEventListener('input', updateSourceStatus);
+
+  function updateSourceStatus() {
+    const lines = sourceView.value.split('\n').length;
+    const chars = sourceView.value.length;
+    sourceStatus.textContent = lines + ' 行 | ' + chars + ' 字符';
+  }
+
+  function renderPreview(mdText) {
+    try {
+      const html = marked.parse(mdText);
+
+      const temp = document.createElement('div');
+      temp.innerHTML = html;
+      const headings = temp.querySelectorAll('h1, h2, h3');
+      const tocItems = [];
+
+      headings.forEach((h, i) => {
+        const id = 'heading-' + i;
+        h.id = id;
+        tocItems.push({ level: h.tagName, text: h.textContent, id: id });
+      });
+
+      let tocHTML = '';
+      if (tocItems.length > 0) {
+        tocHTML = '<details id="toc" open><summary>📑 目录</summary><ul>';
+        tocItems.forEach(item => {
+          const indent = item.level === 'H3' ? ' style="padding-left: 1em;"' : '';
+          tocHTML += '<li' + indent + '><a href="#' + item.id + '">' + item.text + '</a></li>';
+        });
+        tocHTML += '</ul></details>';
+      }
+
+      content.innerHTML = tocHTML + temp.innerHTML;
+      loading.style.display = 'none';
+    } catch (e) {
+      content.innerHTML = '<p style="color:#ef4444;">❌ 渲染失败：' + e.message + '</p>';
+      loading.style.display = 'none';
+    }
+  }
+
+  // ===== 初始化：支持 URL 参数加载外部 .md 文件 =====
+  marked.setOptions({ breaks: true, gfm: true });
+
+  async function init() {
+    const params = new URLSearchParams(window.location.search);
+    const fileParam = params.get('file');
+    const urlParam  = params.get('url');
+    let mdText = MARKDOWN;
+
+    if (fileParam || urlParam) {
+      const fetchUrl = fileParam || urlParam;
+      loading.textContent = '⏳ 正在加载 ' + fetchUrl + ' ...';
+      try {
+        const resp = await fetch(fetchUrl);
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        mdText = await resp.text();
+        // 更新标题
+        const name = fileParam ? fileParam.replace(/^.*[\\/]/, '') : '';
+        if (name) document.title = name + ' — Markdown 预览';
+      } catch (err) {
+        loading.innerHTML = '<p style="color:#ef4444;">❌ 加载失败：' + err.message + '</p>';
+        loading.classList.add('error');
+        sourceView.value = MARKDOWN;
+        updateSourceStatus();
+        renderPreview(MARKDOWN);
+        return;
+      }
+    }
+
+    sourceView.value = mdText;
+    updateSourceStatus();
+    renderPreview(mdText);
+  }
+
+  init();
+
+  // 预览 / 编辑 切换
+  btnPreview.addEventListener('click', function() {
+    btnPreview.classList.add('active');
+    btnSource.classList.remove('active');
+    sourceView.classList.remove('visible');
+    sourceStatus.classList.remove('visible');
+    content.classList.remove('hidden');
+    backToTop.classList.remove('show');
+    // 用编辑区最新内容重新渲染
+    renderPreview(sourceView.value);
+    window.scrollTo({ top: 0 });
+    if (window.location.hash) {
+      var el = document.querySelector(window.location.hash);
+      if (el) el.scrollIntoView();
+    }
+  });
+
+  btnSource.addEventListener('click', function() {
+    btnSource.classList.add('active');
+    btnPreview.classList.remove('active');
+    content.classList.add('hidden');
+    sourceView.classList.add('visible');
+    sourceStatus.classList.add('visible');
+    updateSourceStatus();
+    window.scrollTo({ top: 0 });
+    sourceView.focus();
+  });
+
+  // 下载 .md 文件（使用编辑区最新内容）
+  btnDownload.addEventListener('click', function() {
+    var md = sourceView.value;
+    var blob = new Blob([md], { type: 'text/markdown;charset=utf-8' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'document.md';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  });
+
+  // 回到顶部按钮
+  window.addEventListener('scroll', function() {
+    if (window.scrollY > 300) {
+      backToTop.classList.add('show');
+    } else {
+      backToTop.classList.remove('show');
+    }
+  });
+  backToTop.addEventListener('click', function() {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+})();
+</script>
+
+</body>
+</html>
