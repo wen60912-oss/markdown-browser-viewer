@@ -366,7 +366,57 @@ git push
 
 ---
 
+---
+
+## 阶段六：仓库结构优化
+
+### 步骤 17：仓库目录重组
+
+**时间**：2026-06-27 约 06:55 UTC
+
+**用户提问**："仓库结构是否混乱，要是混乱帮我优化"
+
+**诊断结果**：
+
+| 问题 | 详情 |
+|------|------|
+| 平铺无层级 | 程序 + 5 个文档全在根目录 |
+| 文件名过长 | `markdown-browser-viewer-development-log.md` 47 字符 |
+| 命名不统一 | 英文描述、日期时间、下划线混杂 |
+| README 太简略 | 仅 3 行，无导航 |
+
+**优化对比**：
+
+```
+之前                                之后
+├── markdown-viewer.html            ├── index.html
+├── xxx-development-log.md          ├── docs/
+├── 2026-06-27-xxx-log.md           │   ├── development-log.md
+├── github-setup-guide.md           │   ├── session-log.md
+├── python-http-server-setup.md     │   ├── github-setup.md
+├── cloudflare-domain-guide.md      │   ├── python-http-server.md
+└── README.md                       │   └── cloudflare-domain.md
+                                    └── README.md（重写为导航页）
+```
+
+**命令**：
+```bash
+mkdir -p docs
+git mv markdown-viewer.html index.html
+git mv markdown-browser-viewer-development-log.md docs/development-log.md
+git mv 2026-06-27-0640-session-action-log.md docs/session-log.md
+git mv github-setup-guide.md docs/github-setup.md
+git mv python-http-server-setup.md docs/python-http-server.md
+git mv cloudflare-domain-guide.md docs/cloudflare-domain.md
+```
+
+**效果**：根目录仅保留 `index.html` + `README.md`；文件名平均缩短 50%；README 变为完整导航页。
+
+**提交并推送**。
+
+---
+
 > 📅 **日志生成时间**：2026-06-27 06:40 UTC  
-> 🔄 **最后更新**：2026-06-27 06:50 UTC  
-> 🔢 **本次会话 commit 数**：3  
-> 📦 **仓库文件数**：5
+> 🔄 **最后更新**：2026-06-27 06:55 UTC  
+> 🔢 **本次会话 commit 数**：7  
+> 📦 **仓库文件数**：7（2 根目录 + 5 docs）
