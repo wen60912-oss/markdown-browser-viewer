@@ -310,6 +310,36 @@ https://github.com/wen60912-oss/markdown-browser-viewer
 
 ---
 
+## 阶段四：补充文档
+
+### 步骤 15：Python HTTP 服务器搭建文档
+
+**时间**：2026-06-27 约 06:45 UTC
+
+**用户提问**："你是用 Python 怎么搭建的服务器是的我可以打开你写的 HTML 网页的"
+
+**文件**：`/root/markdown-viewer/python-http-server-setup.md`
+
+**内容章节**：
+1. 我做了什么（3 步操作）
+2. 命令拆解（逐参数说明）
+3. 如何访问（本机、局域网、公网）
+4. 防火墙检查
+5. 工作流程图（ASCII 图）
+6. 常用操作（查看、停止、换端口）
+7. 为什么用 Python 而不是 Nginx
+8. 当前服务器状态
+
+**提交并推送**：
+```bash
+git add python-http-server-setup.md
+git commit
+git push
+```
+
+---
+
 > 📅 **日志生成时间**：2026-06-27 06:40 UTC  
+> 🔄 **最后更新**：2026-06-27 06:45 UTC  
 > 🔢 **本次会话 commit 数**：3  
 > 📦 **仓库文件数**：5
