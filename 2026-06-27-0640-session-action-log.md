@@ -339,7 +339,34 @@ git push
 
 ---
 
+---
+
+## 阶段五：Cloudflare 域名指南
+
+### 步骤 16：Cloudflare 域名申请与使用完全指南
+
+**时间**：2026-06-27 约 06:50 UTC
+
+**用户提问**："Cloudflare 怎么申请域名、有哪些使用技巧、需要注意什么。我的提问可能有很多语病，请帮我改正。写好后的 Markdown 文件上传到 GitHub。"
+
+**行为**：
+- 通过 WebSearch 搜索 Cloudflare 2025-2026 最新定价、域名注册流程、DNS/SSL 最佳实践
+- 创建 `/root/markdown-viewer/cloudflare-domain-guide.md`
+- 内容涵盖：注册流程、定价、转移域名、DNS 技巧、SSL 配置、安全清单、性能优化、排错指南、竞品对比
+- 附原始提问的语病修正 + 英文翻译
+
+**文件大小**：约 11KB
+
+**提交并推送**：
+```bash
+git add cloudflare-domain-guide.md
+git commit
+git push
+```
+
+---
+
 > 📅 **日志生成时间**：2026-06-27 06:40 UTC  
-> 🔄 **最后更新**：2026-06-27 06:45 UTC  
+> 🔄 **最后更新**：2026-06-27 06:50 UTC  
 > 🔢 **本次会话 commit 数**：3  
 > 📦 **仓库文件数**：5
